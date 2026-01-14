@@ -10,7 +10,9 @@ import ScrollCTA from "./ScrollCTA";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-gsap.registerPlugin(ScrollTrigger);
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 export default function LandingPage() {
   const [loaded, setLoaded] = useState(false);
@@ -91,6 +93,8 @@ export default function LandingPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    let destroyed = false;
+
     const initLocomotive = async () => {
       const LocomotiveScroll = (await import("locomotive-scroll")).default;
 
@@ -101,10 +105,12 @@ export default function LandingPage() {
         "(prefers-reduced-motion: reduce)"
       ).matches;
 
-      // Check if mobile to determine if we should lock overflow
+      // mobile/tablet => keep native scroll
       const isMobile = window.innerWidth <= 1024;
 
-      const loco = new LocomotiveScroll({
+      // ✅ IMPORTANT: your types don't include `breakpoint`
+      // so we keep the exact same config but cast options to any
+      const options: any = {
         el: container,
         smooth: !prefersReducedMotion,
         lerp: 0.08,
@@ -112,17 +118,19 @@ export default function LandingPage() {
         getSpeed: true,
         getDirection: true,
         reloadOnContextChange: true,
+        smartphone: { smooth: false },
+        tablet: { smooth: false },
+      };
 
-        // ✅ FIX: satisfy TS types by adding `breakpoint`
-        // Keeps same functionality: smooth disabled on smartphone/tablet.
-        smartphone: { smooth: false, breakpoint: 0 },
-        tablet: { smooth: false, breakpoint: 0 },
-      });
+      const loco = new LocomotiveScroll(options);
+      if (destroyed) {
+        loco.destroy();
+        return;
+      }
 
       locoRef.current = loco;
 
-      // ✅ FIX: Only lock overflow on Desktop/Smooth mode.
-      // On mobile, we need default overflow for native scrolling.
+      // ✅ Only lock overflow on desktop + smooth mode
       if (!isMobile && !prefersReducedMotion) {
         document.documentElement.style.overflow = "hidden";
         document.body.style.overflow = "hidden";
@@ -138,13 +146,13 @@ export default function LandingPage() {
       // SCROLLER PROXY
       ScrollTrigger.scrollerProxy(container, {
         scrollTop(value) {
-          if (loco.scroll && loco.scroll.instance) {
+          if (loco?.scroll && loco?.scroll?.instance) {
             if (typeof value === "number") {
               loco.scrollTo(value, { duration: 0, disableLerp: true });
             }
             return loco.scroll.instance.scroll.y;
           }
-          return 0; // Fallback
+          return 0;
         },
         getBoundingClientRect() {
           return {
@@ -157,7 +165,7 @@ export default function LandingPage() {
         pinType: container.style.transform ? "transform" : "fixed",
       });
 
-      // ✅ CRITICAL FIX: make ALL triggers use the locomotive scroller by default
+      // ✅ Make ScrollTrigger use locomotive container by default
       ScrollTrigger.defaults({ scroller: container });
 
       // refresh flow
@@ -170,10 +178,10 @@ export default function LandingPage() {
     initLocomotive();
 
     return () => {
+      destroyed = true;
       locoRef.current?.destroy();
       locoRef.current = null;
 
-      // Reset overflow on unmount
       document.documentElement.style.overflow = "";
       document.body.style.overflow = "";
     };
@@ -236,9 +244,7 @@ export default function LandingPage() {
         <footer className="mx-auto max-w-6xl px-4 pb-10 sm:px-6">
           <div className="flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 text-sm text-white/60 sm:flex-row">
             <span>© {year} XOVATO. All rights reserved.</span>
-            <span className="text-white/50">
-              build With XOVATO Tech With Love
-            </span>
+            <span className="text-white/50">build With XOVATO Tech With Love</span>
           </div>
         </footer>
       </div>
@@ -273,7 +279,7 @@ export default function LandingPage() {
             height: auto !important;
             position: static !important;
           }
-          /* Ensure container doesn't block scroll */
+
           [data-scroll-container] {
             overflow-y: visible !important;
             transform: none !important;

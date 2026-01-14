@@ -1,5 +1,7 @@
+// app/components/landing/LandingPage.tsx
 "use client";
-import dynamic from 'next/dynamic';
+
+import dynamic from "next/dynamic";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "./Navbar";
 import Sections from "./Sections";
@@ -95,7 +97,10 @@ export default function LandingPage() {
       const container = scrollContainerRef.current;
       if (!container) return;
 
-      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+
       // Check if mobile to determine if we should lock overflow
       const isMobile = window.innerWidth <= 1024;
 
@@ -107,8 +112,11 @@ export default function LandingPage() {
         getSpeed: true,
         getDirection: true,
         reloadOnContextChange: true,
-        smartphone: { smooth: false },
-        tablet: { smooth: false },
+
+        // ✅ FIX: satisfy TS types by adding `breakpoint`
+        // Keeps same functionality: smooth disabled on smartphone/tablet.
+        smartphone: { smooth: false, breakpoint: 0 },
+        tablet: { smooth: false, breakpoint: 0 },
       });
 
       locoRef.current = loco;
@@ -121,7 +129,7 @@ export default function LandingPage() {
       }
 
       loco.on("scroll", (instance: any) => {
-        const scrollY = instance.scroll.y;
+        const scrollY = instance?.scroll?.y ?? 0;
         setShowScrollCta(scrollY > 140);
         setNavSolid(scrollY > 18);
         ScrollTrigger.update();
@@ -131,15 +139,20 @@ export default function LandingPage() {
       ScrollTrigger.scrollerProxy(container, {
         scrollTop(value) {
           if (loco.scroll && loco.scroll.instance) {
-             if (typeof value === "number") {
-                loco.scrollTo(value, { duration: 0, disableLerp: true });
-             }
-             return loco.scroll.instance.scroll.y;
+            if (typeof value === "number") {
+              loco.scrollTo(value, { duration: 0, disableLerp: true });
+            }
+            return loco.scroll.instance.scroll.y;
           }
           return 0; // Fallback
         },
         getBoundingClientRect() {
-          return { top: 0, left: 0, width: window.innerWidth, height: window.innerHeight };
+          return {
+            top: 0,
+            left: 0,
+            width: window.innerWidth,
+            height: window.innerHeight,
+          };
         },
         pinType: container.style.transform ? "transform" : "fixed",
       });
@@ -159,6 +172,7 @@ export default function LandingPage() {
     return () => {
       locoRef.current?.destroy();
       locoRef.current = null;
+
       // Reset overflow on unmount
       document.documentElement.style.overflow = "";
       document.body.style.overflow = "";
@@ -212,13 +226,19 @@ export default function LandingPage() {
         mobileServicesPanelRef={mobileServicesPanelRef}
       />
 
-      <div ref={scrollContainerRef} data-scroll-container className="will-change-transform">
+      <div
+        ref={scrollContainerRef}
+        data-scroll-container
+        className="will-change-transform"
+      >
         <Sections loaded={loaded} />
 
         <footer className="mx-auto max-w-6xl px-4 pb-10 sm:px-6">
           <div className="flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 text-sm text-white/60 sm:flex-row">
             <span>© {year} XOVATO. All rights reserved.</span>
-            <span className="text-white/50">build With XOVATO Tech With Love </span>
+            <span className="text-white/50">
+              build With XOVATO Tech With Love
+            </span>
           </div>
         </footer>
       </div>
@@ -246,17 +266,18 @@ export default function LandingPage() {
 
         /* MOBILE/TABLET: Force Native Scrolling */
         @media (max-width: 1024px) {
-           html, body {
-             overflow-y: auto !important;
-             overflow-x: hidden !important;
-             height: auto !important;
-             position: static !important;
-           }
-           /* Ensure container doesn't block scroll */
-           [data-scroll-container] {
-             overflow-y: visible !important;
-             transform: none !important; 
-           }
+          html,
+          body {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            height: auto !important;
+            position: static !important;
+          }
+          /* Ensure container doesn't block scroll */
+          [data-scroll-container] {
+            overflow-y: visible !important;
+            transform: none !important;
+          }
         }
 
         [data-scroll-container] {

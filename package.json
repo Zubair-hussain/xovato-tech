@@ -2,12 +2,12 @@
   "name": "xovatotech",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev --webpack",
-    "dev:turbo": "next dev",
-    "build": "next build",
-    "start": "next start"
-  },
+ "scripts": {
+  "dev": "next dev --webpack",
+  "dev:turbo": "next dev",
+  "build": "next build --webpack",
+  "start": "next start"
+},
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
     "@react-three/drei": "^10.7.7",

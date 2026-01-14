@@ -1,0 +1,497 @@
+@import "tailwindcss";
+@import "locomotive-scroll/dist/locomotive-scroll.css";
+
+/* ===========================
+   ROOT TOKENS
+   =========================== */
+:root {
+  --bg-main: #000000;
+  --bg-panel: #050505;
+  --bg-panel-soft: rgba(255, 255, 255, 0.03);
+
+  --border-soft: rgba(255, 255, 255, 0.08);
+  --border-hard: rgba(255, 255, 255, 0.14);
+
+  --text-main: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.55);
+  --text-dim: rgba(255, 255, 255, 0.35);
+
+  --signal-ok: #22c55e;
+  --signal-warn: #facc15;
+  --signal-bad: #ef4444;
+
+  /* Theme vars used below */
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+/* Optional system-based defaults */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+/* ===========================
+   GLOBAL SCROLLBAR (GREEN THEME)
+   - Works for page scroll
+   =========================== */
+
+/* Firefox */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(16, 185, 129, 0.9) rgba(255, 255, 255, 0.04);
+}
+
+/* Chrome / Edge / Safari */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+
+  /* Emerald → Cyan → Emerald (premium) */
+  background: linear-gradient(
+    180deg,
+    rgba(16, 185, 129, 0.95) 0%,
+    rgba(6, 182, 212, 0.85) 55%,
+    rgba(16, 185, 129, 0.95) 100%
+  );
+
+  /* gives separation on dark */
+  border: 2px solid rgba(0, 0, 0, 0.55);
+
+  /* glow + depth */
+  box-shadow:
+    0 10px 28px rgba(16, 185, 129, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(52, 211, 153, 1) 0%,
+    rgba(34, 211, 238, 0.95) 55%,
+    rgba(52, 211, 153, 1) 100%
+  );
+  box-shadow:
+    0 12px 34px rgba(16, 185, 129, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(
+    180deg,
+    rgba(16, 185, 129, 1) 0%,
+    rgba(6, 182, 212, 1) 55%,
+    rgba(16, 185, 129, 1) 100%
+  );
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ===========================
+   COMPONENTS LAYER
+   =========================== */
+@layer components {
+  /* Nav links: NO boxes */
+  .navlink {
+    @apply relative inline-flex items-center text-sm font-semibold text-white/70 transition;
+  }
+  .navlink::after {
+    content: "";
+    @apply absolute left-0 -bottom-1 h-[2px] w-full origin-left scale-x-0 bg-emerald-400/80 transition-transform duration-200;
+  }
+  .navlink:hover {
+    @apply text-white;
+  }
+  .navlink:hover::after {
+    @apply scale-x-100;
+  }
+  .navlink:focus-visible {
+    @apply outline-none ring-2 ring-emerald-400/40 ring-offset-2 ring-offset-black;
+  }
+
+  .navdot {
+    @apply inline-block h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.75)] transition;
+  }
+
+  /* Dropdown glass */
+  .dropdownGlass {
+    @apply overflow-hidden rounded-2xl border border-white/10 bg-black/70 backdrop-blur-xl shadow-[0_30px_100px_rgba(0,0,0,0.7)];
+  }
+
+  .stepDot {
+    @apply absolute -left-[26px] top-2 h-2.5 w-2.5 rounded-full bg-emerald-400/90 shadow-[0_0_18px_rgba(16,185,129,0.85)];
+  }
+
+  .magicOutline {
+    @apply relative overflow-hidden rounded-xl border border-emerald-400/25 bg-white/5 transition;
+  }
+  .magicOutline::before {
+    content: "";
+    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+    background: radial-gradient(
+      600px circle at var(--x, 50%) var(--y, 50%),
+      rgba(16, 185, 129, 0.22),
+      transparent 45%
+    );
+  }
+  .magicOutline:hover::before {
+    @apply opacity-100;
+  }
+
+  /* Small helper glow (optional) */
+  .navlink-glow {
+    @apply pointer-events-none absolute -inset-x-2 -inset-y-1 opacity-0 blur-xl transition-opacity duration-200;
+    background: radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.18), transparent 60%);
+  }
+  .group:hover .navlink-glow {
+    @apply opacity-100;
+  }
+
+  /* ✅ Emerald scrollbar utility (for inner scroll containers, e.g. mobile services list) */
+  .scrollbar-emerald::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  .scrollbar-emerald::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+  .scrollbar-emerald::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      rgba(16, 185, 129, 0.95) 0%,
+      rgba(6, 182, 212, 0.85) 55%,
+      rgba(16, 185, 129, 0.95) 100%
+    );
+    border-radius: 999px;
+    border: 2px solid rgba(0, 0, 0, 0.55);
+    box-shadow: 0 10px 26px rgba(16, 185, 129, 0.28);
+  }
+  .scrollbar-emerald::-webkit-scrollbar-thumb:hover {
+    box-shadow: 0 12px 34px rgba(16, 185, 129, 0.38);
+  }
+  .scrollbar-emerald {
+    scrollbar-color: rgba(16, 185, 129, 0.9) rgba(255, 255, 255, 0.04);
+    scrollbar-width: thin;
+  }
+
+  /* ================================
+      PURE GLASS EFFECTS - NO COLOR
+     ================================ */
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+      0 8px 32px 0 rgba(0, 0, 0, 0.37),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .glass-panel:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow:
+      0 12px 40px 0 rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+  }
+
+  .glass-button {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+  }
+
+  .glass-button:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  }
+
+  .glass-button:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  .glass-overlay {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .glass-frosted {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow:
+      0 10px 40px rgba(0, 0, 0, 0.4),
+      inset 0 1px 2px rgba(255, 255, 255, 0.2);
+  }
+
+  .glass-light {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+}
+
+/* ================================
+   Brand Selection Color (Green)
+   ================================ */
+::selection {
+  background-color: rgba(16, 185, 129, 0.35);
+  color: #000;
+}
+::-moz-selection {
+  background-color: rgba(16, 185, 129, 0.35);
+  color: #000;
+}
+input::selection,
+textarea::selection {
+  background-color: rgba(16, 185, 129, 0.35);
+  color: #000;
+}
+
+/* ================================
+   THEME INLINE (your existing)
+   ================================ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* ================================
+   BASE
+   ================================ */
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ✅ FIXED: Mobile Scroll Logic */
+@media (min-width: 1025px) {
+  html.has-scroll-smooth {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    overflow: hidden;
+  }
+
+  html.has-scroll-smooth body {
+    position: fixed;
+    width: 100%;
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 1024px) {
+  html,
+  body {
+    position: static;
+    overflow-y: auto !important;
+  }
+}
+
+/* ===========================
+   LOCOMOTIVE SCROLLBAR — BOLD
+   =========================== */
+
+.c-scrollbar {
+  position: fixed;
+  right: 6px;
+  top: 0;
+  height: 100vh;
+
+  /* 👇 make it bold */
+  width: 14px;
+
+  background: transparent;
+  z-index: 9999;
+}
+
+/* Track (optional subtle glass) */
+.c-scrollbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(6px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* Thumb */
+.c-scrollbar_thumb {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+
+  /* 👇 radius */
+  border-radius: 999px;
+
+  /* 👇 emerald gradient */
+  background: linear-gradient(
+    180deg,
+    rgba(16, 185, 129, 1) 0%,
+    rgba(6, 182, 212, 0.95) 50%,
+    rgba(16, 185, 129, 1) 100%
+  );
+
+  /* 👇 strong depth + glow */
+  box-shadow:
+    0 0 22px rgba(16, 185, 129, 0.55),
+    0 0 44px rgba(16, 185, 129, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+/* Hover = thicker + brighter */
+.c-scrollbar_thumb:hover {
+  transform: scaleX(1.15);
+
+  background: linear-gradient(
+    180deg,
+    rgba(52, 211, 153, 1) 0%,
+    rgba(34, 211, 238, 1) 50%,
+    rgba(52, 211, 153, 1) 100%
+  );
+
+  box-shadow:
+    0 0 30px rgba(16, 185, 129, 0.7),
+    0 0 60px rgba(16, 185, 129, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* Active drag feedback */
+.c-scrollbar_thumb:active {
+  transform: scaleX(1.25);
+}
+
+/* Optional: hide on mobile (recommended UX) */
+@media (max-width: 1024px) {
+  .c-scrollbar {
+    display: none;
+  }
+}
+
+
+/* ===========================
+   LOCOMOTIVE SCROLL ARROWS
+   =========================== */
+
+.c-scrollbar-button {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+
+  width: 32px;
+  height: 32px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 999px;
+  cursor: pointer;
+
+  background: linear-gradient(
+    180deg,
+    rgba(16,185,129,0.95),
+    rgba(6,182,212,0.9)
+  );
+
+  box-shadow:
+    0 0 18px rgba(16,185,129,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.35);
+
+  color: #000;
+  font-size: 16px;
+  font-weight: bold;
+
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.c-scrollbar-button:hover {
+  transform: translateX(-50%) scale(1.12);
+  box-shadow:
+    0 0 26px rgba(16,185,129,0.65),
+    inset 0 1px 0 rgba(255,255,255,0.45);
+}
+
+.c-scrollbar-button:active {
+  transform: translateX(-50%) scale(1.25);
+}
+
+/* Positioning */
+.c-scrollbar-button.up {
+  top: 8px;
+}
+
+.c-scrollbar-button.down {
+  bottom: 8px;
+}
+
+/* Hide on mobile */
+@media (max-width: 1024px) {
+  .c-scrollbar-button {
+    display: none;
+  }
+}

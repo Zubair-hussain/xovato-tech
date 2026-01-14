@@ -32,6 +32,9 @@ type ReviewRow = {
 
 type EarthPerson = { name: string; country: string; image: string };
 
+/* ✅ FIX: Explicit region typing (prevents `never[]` + includes() TS error) */
+type Region = { label: string; countries: string[] };
+
 /* ──────────────────────────────────────────────── */
 /* HELPERS */
 /* ──────────────────────────────────────────────── */
@@ -264,17 +267,23 @@ function makeEarthLandDotsFromTexture(imgData: ImageData, count = 2600, radius =
 /* ──────────────────────────────────────────────── */
 /* REGIONS */
 /* ──────────────────────────────────────────────── */
-const REGIONS = [
+/**
+ * ✅ Key change:
+ * - removed `as const` and explicitly typed as Region[]
+ * - keeps exact same data & behavior, only fixes TS inference on `countries.includes(code)`
+ */
+const REGIONS: Region[] = [
   { label: "Asia", countries: ["PK", "IN", "BD", "JP", "SG"] },
   { label: "Middle East", countries: ["AE", "SA", "QA", "KW", "OM"] },
   { label: "Europe", countries: ["GB", "DE", "FR", "NL", "ES", "IT"] },
   { label: "North America", countries: ["US", "CA", "MX"] },
   { label: "Africa", countries: ["NG", "KE", "ZA", "EG", "MA"] },
   { label: "Oceania", countries: ["AU", "NZ"] },
-] as const;
+];
 
 function getRegionIndexForCountry(code: string) {
-  const idx = REGIONS.findIndex((r) => r.countries.includes(code));
+  const c = (code || "").toUpperCase();
+  const idx = REGIONS.findIndex((r) => r.countries.includes(c));
   return idx === -1 ? 0 : idx;
 }
 
@@ -741,7 +750,15 @@ export default function GlobeReviewsWidget({ category = "Web App" }: { category?
   useEffect(() => {
     if (!experience) return;
     const idx =
-      progressUI > 0.78 ? 3 : progressUI > 0.56 ? 2 : progressUI > 0.34 ? 1 : progressUI > 0.14 ? 0 : 0;
+      progressUI > 0.78
+        ? 3
+        : progressUI > 0.56
+          ? 2
+          : progressUI > 0.34
+            ? 1
+            : progressUI > 0.14
+              ? 0
+              : 0;
     setMobileIndex(idx);
   }, [progressUI, experience]);
 
@@ -1093,9 +1110,7 @@ export default function GlobeReviewsWidget({ category = "Web App" }: { category?
                     ← Prev
                   </button>
 
-                  <div className="text-[11px] text-white/60">
-                    {mobileIndex + 1} / 4
-                  </div>
+                  <div className="text-[11px] text-white/60">{mobileIndex + 1} / 4</div>
 
                   <button
                     type="button"

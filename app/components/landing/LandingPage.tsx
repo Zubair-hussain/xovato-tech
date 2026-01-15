@@ -8,37 +8,31 @@ import ScrollCTA from "./ScrollCTA";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-// register safely (prevents double-register issues)
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger);
-}
+gsap.registerPlugin(ScrollTrigger);
 
 export default function LandingPage() {
   const [loaded, setLoaded] = useState(false);
+
+  // Desktop services dropdown state (Navbar expects these)
   const [servicesOpen, setServicesOpen] = useState(false);
-  const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [showScrollCta, setShowScrollCta] = useState(false);
   const [navSolid, setNavSolid] = useState(false);
 
   const servicesBtnRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const mobileBtnRef = useRef<HTMLButtonElement>(null);
-  const mobilePanelRef = useRef<HTMLDivElement>(null);
-  const mobileServicesBtnRef = useRef<HTMLButtonElement>(null);
-  const mobileServicesPanelRef = useRef<HTMLDivElement>(null);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const locoRef = useRef<any>(null);
 
-  // ✅ NEW: we store current scrollY ourselves (TS-safe, no loco.scroll access)
-  const scrollYRef = useRef<number>(0);
+  // ✅ Track scrollY ourselves to avoid `loco.scroll` typings
+  const scrollYRef = useRef(0);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoaded(true), 420);
     return () => clearTimeout(timer);
   }, []);
 
+  // Close desktop dropdown on outside / esc
   useEffect(() => {
     const closeOnOutside = (e: MouseEvent) => {
       const target = e.target as Node;
@@ -52,35 +46,10 @@ export default function LandingPage() {
       ) {
         setServicesOpen(false);
       }
-
-      if (
-        mobileServicesOpen &&
-        mobileServicesBtnRef.current &&
-        !mobileServicesBtnRef.current.contains(target) &&
-        mobileServicesPanelRef.current &&
-        !mobileServicesPanelRef.current.contains(target)
-      ) {
-        setMobileServicesOpen(false);
-      }
-
-      if (
-        mobileOpen &&
-        mobileBtnRef.current &&
-        !mobileBtnRef.current.contains(target) &&
-        mobilePanelRef.current &&
-        !mobilePanelRef.current.contains(target)
-      ) {
-        setMobileOpen(false);
-        setMobileServicesOpen(false);
-      }
     };
 
     const closeOnEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setServicesOpen(false);
-        setMobileServicesOpen(false);
-        setMobileOpen(false);
-      }
+      if (e.key === "Escape") setServicesOpen(false);
     };
 
     window.addEventListener("mousedown", closeOnOutside);
@@ -90,12 +59,10 @@ export default function LandingPage() {
       window.removeEventListener("mousedown", closeOnOutside);
       window.removeEventListener("keydown", closeOnEsc);
     };
-  }, [servicesOpen, mobileServicesOpen, mobileOpen]);
+  }, [servicesOpen]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-
-    let destroyed = false;
 
     const initLocomotive = async () => {
       const LocomotiveScroll = (await import("locomotive-scroll")).default;
@@ -103,12 +70,18 @@ export default function LandingPage() {
       const container = scrollContainerRef.current;
       if (!container) return;
 
-      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+
       const isMobile = window.innerWidth <= 1024;
+
+      // ✅ Smooth only on desktop + no-reduced-motion
+      const smoothEnabled = !prefersReducedMotion && !isMobile;
 
       const loco = new LocomotiveScroll({
         el: container,
-        smooth: !prefersReducedMotion && !isMobile,
+        smooth: smoothEnabled,
         lerp: 0.08,
         multiplier: 1,
         getSpeed: true,
@@ -116,20 +89,18 @@ export default function LandingPage() {
         reloadOnContextChange: true,
       });
 
-      if (destroyed) {
-        loco.destroy();
-        return;
-      }
-
       locoRef.current = loco;
 
-      // ✅ Only lock overflow for Desktop smooth mode
-      if (!isMobile && !prefersReducedMotion) {
+      // ✅ Only lock overflow when smooth is enabled (desktop)
+      if (smoothEnabled) {
         document.documentElement.style.overflow = "hidden";
         document.body.style.overflow = "hidden";
+      } else {
+        document.documentElement.style.overflow = "";
+        document.body.style.overflow = "";
       }
 
-      // ✅ Locomotive scroll listener (store scrollY ourselves)
+      // ✅ Update refs + UI states
       loco.on("scroll", (instance: any) => {
         const y = instance?.scroll?.y ?? 0;
         scrollYRef.current = y;
@@ -140,15 +111,12 @@ export default function LandingPage() {
         ScrollTrigger.update();
       });
 
-      // ✅ IMPORTANT: scrollerProxy without using loco.scroll.* (TS-safe)
+      // ✅ Scroller proxy WITHOUT touching `loco.scroll`
       ScrollTrigger.scrollerProxy(container, {
-        scrollTop(value?: number) {
-          // setter
+        scrollTop(value) {
           if (typeof value === "number") {
             loco.scrollTo(value, { duration: 0, disableLerp: true });
-            return;
           }
-          // getter
           return scrollYRef.current;
         },
         getBoundingClientRect() {
@@ -162,30 +130,20 @@ export default function LandingPage() {
         pinType: container.style.transform ? "transform" : "fixed",
       });
 
-      // ✅ make all triggers default to this scroller
+      // ✅ Make all ScrollTriggers use locomotive container
       ScrollTrigger.defaults({ scroller: container });
 
-      // ✅ refresh flow
-      const refresh = () => {
-        try {
-          loco.update();
-        } catch {}
+      // Refresh flow
+      setTimeout(() => {
+        loco.update();
         ScrollTrigger.refresh();
-      };
-
-      setTimeout(refresh, 200);
-      setTimeout(refresh, 800);
+      }, 200);
     };
 
     initLocomotive();
 
     return () => {
-      destroyed = true;
-
-      try {
-        locoRef.current?.destroy();
-      } catch {}
-
+      locoRef.current?.destroy();
       locoRef.current = null;
 
       document.documentElement.style.overflow = "";
@@ -193,13 +151,12 @@ export default function LandingPage() {
     };
   }, []);
 
+  // Force update after load
   useEffect(() => {
     if (!loaded || !locoRef.current) return;
 
     const forceUpdate = () => {
-      try {
-        locoRef.current?.update();
-      } catch {}
+      locoRef.current?.update();
       ScrollTrigger.refresh();
       window.dispatchEvent(new Event("resize"));
     };
@@ -215,9 +172,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     const onResize = () => {
-      try {
-        locoRef.current?.update();
-      } catch {}
+      locoRef.current?.update();
       ScrollTrigger.refresh();
     };
     window.addEventListener("resize", onResize);
@@ -234,17 +189,13 @@ export default function LandingPage() {
         setServicesOpen={setServicesOpen}
         servicesBtnRef={servicesBtnRef}
         panelRef={panelRef}
-        mobileOpen={mobileOpen}
-        setMobileOpen={setMobileOpen}
-        mobileBtnRef={mobileBtnRef}
-        mobilePanelRef={mobilePanelRef}
-        mobileServicesOpen={mobileServicesOpen}
-        setMobileServicesOpen={setMobileServicesOpen}
-        mobileServicesBtnRef={mobileServicesBtnRef}
-        mobileServicesPanelRef={mobileServicesPanelRef}
       />
 
-      <div ref={scrollContainerRef} data-scroll-container className="will-change-transform">
+      <div
+        ref={scrollContainerRef}
+        data-scroll-container
+        className="will-change-transform"
+      >
         <Sections loaded={loaded} />
 
         <footer className="mx-auto max-w-6xl px-4 pb-10 sm:px-6">
@@ -258,7 +209,7 @@ export default function LandingPage() {
       <ScrollCTA show={showScrollCta} />
 
       <style jsx global>{`
-        /* DESKTOP: locomotive fixed behavior */
+        /* DESKTOP: Apply Locomotive Fixed styles */
         @media (min-width: 1025px) {
           html.has-scroll-smooth {
             position: fixed !important;
@@ -276,7 +227,7 @@ export default function LandingPage() {
           }
         }
 
-        /* MOBILE/TABLET: native scroll */
+        /* MOBILE/TABLET: Force Native Scrolling */
         @media (max-width: 1024px) {
           html,
           body {

@@ -14,7 +14,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 import GlobeReviewsWidget from "./GlobeReviewsWidget";
-import AgencyProcessSection from "./AgencyProcessSection"
+import AgencyProcessSection from "./AgencyProcessSection";
 
 /* ------------------------- GSAP REGISTER (SAFE) ------------------------- */
 if (typeof window !== "undefined") {
@@ -823,7 +823,8 @@ function GlassProofPanel() {
 
           <div className="space-y-4 text-white/90" data-para>
             <p className="text-sm leading-relaxed sm:text-base md:text-lg glass-text-soft">
-              We build modern, high-performance digital products with clean UI, solid architecture, and strong attention to detail — from landing pages to full web apps.
+              We build modern, high-performance digital products with clean UI, solid architecture, and strong attention
+              to detail — from landing pages to full web apps.
             </p>
           </div>
 
@@ -1126,12 +1127,7 @@ export default function Sections({ loaded }: { loaded: boolean }) {
                 <span className="absolute inset-[-1000%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#000000_0%,#10b981_50%,#000000_100%)]" />
                 <span className="inline-flex h-full w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-black px-8 py-1 text-sm font-bold tracking-wide text-white backdrop-blur-3xl transition-colors duration-300 group-hover:bg-zinc-900">
                   Schedule a Call
-                  <svg
-                    className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
                 </span>

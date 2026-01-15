@@ -714,7 +714,11 @@ function GlassProofPanel() {
     const glow = glowRef.current;
     if (!panel) return;
 
-    const scroller = (ScrollTrigger.defaults() as any)?.scroller;
+     const scroller =
+     (ScrollTrigger.getAll()[0] as any)?.vars?.scroller ||
+     (ScrollTrigger.getAll()[0] as any)?.scroller ||
+      undefined;
+
 
     const ctx = gsap.context(() => {
       gsap.set(panel, { autoAlpha: 0, y: 28, scale: 0.985 });

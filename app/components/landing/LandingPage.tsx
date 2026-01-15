@@ -1,7 +1,5 @@
-// app/components/landing/LandingPage.tsx
 "use client";
 
-import dynamic from "next/dynamic";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "./Navbar";
 import Sections from "./Sections";
@@ -10,6 +8,7 @@ import ScrollCTA from "./ScrollCTA";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
+// register safely (prevents double-register issues)
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
@@ -31,6 +30,9 @@ export default function LandingPage() {
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const locoRef = useRef<any>(null);
+
+  // ✅ NEW: we store current scrollY ourselves (TS-safe, no loco.scroll access)
+  const scrollYRef = useRef<number>(0);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoaded(true), 420);
@@ -101,28 +103,19 @@ export default function LandingPage() {
       const container = scrollContainerRef.current;
       if (!container) return;
 
-      const prefersReducedMotion = window.matchMedia(
-        "(prefers-reduced-motion: reduce)"
-      ).matches;
-
-      // mobile/tablet => keep native scroll
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const isMobile = window.innerWidth <= 1024;
 
-      // ✅ IMPORTANT: your types don't include `breakpoint`
-      // so we keep the exact same config but cast options to any
-      const options: any = {
+      const loco = new LocomotiveScroll({
         el: container,
-        smooth: !prefersReducedMotion,
+        smooth: !prefersReducedMotion && !isMobile,
         lerp: 0.08,
         multiplier: 1,
         getSpeed: true,
         getDirection: true,
         reloadOnContextChange: true,
-        smartphone: { smooth: false },
-        tablet: { smooth: false },
-      };
+      });
 
-      const loco = new LocomotiveScroll(options);
       if (destroyed) {
         loco.destroy();
         return;
@@ -130,29 +123,33 @@ export default function LandingPage() {
 
       locoRef.current = loco;
 
-      // ✅ Only lock overflow on desktop + smooth mode
+      // ✅ Only lock overflow for Desktop smooth mode
       if (!isMobile && !prefersReducedMotion) {
         document.documentElement.style.overflow = "hidden";
         document.body.style.overflow = "hidden";
       }
 
+      // ✅ Locomotive scroll listener (store scrollY ourselves)
       loco.on("scroll", (instance: any) => {
-        const scrollY = instance?.scroll?.y ?? 0;
-        setShowScrollCta(scrollY > 140);
-        setNavSolid(scrollY > 18);
+        const y = instance?.scroll?.y ?? 0;
+        scrollYRef.current = y;
+
+        setShowScrollCta(y > 140);
+        setNavSolid(y > 18);
+
         ScrollTrigger.update();
       });
 
-      // SCROLLER PROXY
+      // ✅ IMPORTANT: scrollerProxy without using loco.scroll.* (TS-safe)
       ScrollTrigger.scrollerProxy(container, {
-        scrollTop(value) {
-          if (loco?.scroll && loco?.scroll?.instance) {
-            if (typeof value === "number") {
-              loco.scrollTo(value, { duration: 0, disableLerp: true });
-            }
-            return loco.scroll.instance.scroll.y;
+        scrollTop(value?: number) {
+          // setter
+          if (typeof value === "number") {
+            loco.scrollTo(value, { duration: 0, disableLerp: true });
+            return;
           }
-          return 0;
+          // getter
+          return scrollYRef.current;
         },
         getBoundingClientRect() {
           return {
@@ -165,21 +162,30 @@ export default function LandingPage() {
         pinType: container.style.transform ? "transform" : "fixed",
       });
 
-      // ✅ Make ScrollTrigger use locomotive container by default
+      // ✅ make all triggers default to this scroller
       ScrollTrigger.defaults({ scroller: container });
 
-      // refresh flow
-      setTimeout(() => {
-        loco.update();
+      // ✅ refresh flow
+      const refresh = () => {
+        try {
+          loco.update();
+        } catch {}
         ScrollTrigger.refresh();
-      }, 200);
+      };
+
+      setTimeout(refresh, 200);
+      setTimeout(refresh, 800);
     };
 
     initLocomotive();
 
     return () => {
       destroyed = true;
-      locoRef.current?.destroy();
+
+      try {
+        locoRef.current?.destroy();
+      } catch {}
+
       locoRef.current = null;
 
       document.documentElement.style.overflow = "";
@@ -191,7 +197,9 @@ export default function LandingPage() {
     if (!loaded || !locoRef.current) return;
 
     const forceUpdate = () => {
-      locoRef.current?.update();
+      try {
+        locoRef.current?.update();
+      } catch {}
       ScrollTrigger.refresh();
       window.dispatchEvent(new Event("resize"));
     };
@@ -207,7 +215,9 @@ export default function LandingPage() {
 
   useEffect(() => {
     const onResize = () => {
-      locoRef.current?.update();
+      try {
+        locoRef.current?.update();
+      } catch {}
       ScrollTrigger.refresh();
     };
     window.addEventListener("resize", onResize);
@@ -234,11 +244,7 @@ export default function LandingPage() {
         mobileServicesPanelRef={mobileServicesPanelRef}
       />
 
-      <div
-        ref={scrollContainerRef}
-        data-scroll-container
-        className="will-change-transform"
-      >
+      <div ref={scrollContainerRef} data-scroll-container className="will-change-transform">
         <Sections loaded={loaded} />
 
         <footer className="mx-auto max-w-6xl px-4 pb-10 sm:px-6">
@@ -252,7 +258,7 @@ export default function LandingPage() {
       <ScrollCTA show={showScrollCta} />
 
       <style jsx global>{`
-        /* DESKTOP: Apply Locomotive Fixed styles */
+        /* DESKTOP: locomotive fixed behavior */
         @media (min-width: 1025px) {
           html.has-scroll-smooth {
             position: fixed !important;
@@ -270,7 +276,7 @@ export default function LandingPage() {
           }
         }
 
-        /* MOBILE/TABLET: Force Native Scrolling */
+        /* MOBILE/TABLET: native scroll */
         @media (max-width: 1024px) {
           html,
           body {

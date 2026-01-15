@@ -1,5 +1,5 @@
 // app/lib/supabaseClient.ts
-// ✅ Updated: safer env checks + stronger debug logging for reviews/reporting + less noise
+// ✅ Updated: Cloudflare-safe fetch typing + same logging behavior
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -61,25 +61,35 @@ export const supabase: SupabaseClient = createClient(
     },
     global: {
       fetch: async (input, init) => {
-        const url = typeof input === "string" ? input : input.url;
+        // ✅ FIX: handle string | URL | Request safely (Cloudflare + Node 22)
+        const url =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+            ? input.toString()
+            : input.url;
+
         const method = (init?.method || "GET").toUpperCase();
 
         // IMPORTANT: call native fetch first
-        const res = await fetch(input, init);
+        const res = await fetch(input as any, init);
 
         // Only log reviews/reporting REST failures (avoid noisy logs)
         const isReviewsEndpoint =
-          url.includes("/rest/v1/reviews") || url.includes("/rest/v1/review_reports");
+          url.includes("/rest/v1/reviews") ||
+          url.includes("/rest/v1/review_reports");
 
         if (isReviewsEndpoint && !res.ok) {
           const { text, json } = await safeReadBody(res);
           const requestId = pickRequestId(res);
 
-          // Try to surface PostgREST error fields if present
           const hint = json?.hint ?? null;
           const details = json?.details ?? null;
           const message =
-            json?.message ?? json?.error_description ?? json?.error ?? res.statusText;
+            json?.message ??
+            json?.error_description ??
+            json?.error ??
+            res.statusText;
 
           // eslint-disable-next-line no-console
           console.error("[SUPABASE HTTP ERROR]", {
@@ -92,14 +102,13 @@ export const supabase: SupabaseClient = createClient(
             details,
             hint,
             body: text || "(no body)",
-            // Helpful debugging hints for common cases:
             commonCauses:
               res.status === 401
                 ? "Auth/session missing or anon key wrong."
                 : res.status === 403
                 ? "RLS blocked this request (policy)."
                 : res.status === 400
-                ? "Constraint/check failed (email format, not null, etc.) or PostgREST error."
+                ? "Constraint/check failed or PostgREST error."
                 : null,
           });
         }

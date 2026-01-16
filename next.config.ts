@@ -1,41 +1,44 @@
-import type { NextConfig } from "next";
-import type { Configuration as WebpackConfig } from "webpack"; // ← This fixes the type error
+import type { NextConfig } from 'next';
+import type { Configuration as WebpackConfig } from 'webpack';
 
 const nextConfig: NextConfig = {
-  // Turbopack config is now TOP-LEVEL (not experimental) in Next.js 16
-  // Comment this out or remove if you want to use Turbopack (default in Next.js 16)
-  // turbopack: {
-  //   // your turbopack options here if needed
-  // },
-
-  // Recommended: force Webpack in dev (most stable for three.js + postprocessing right now)
-  // Remove or comment this line later when Turbopack becomes more reliable for your project
-  // (you can also use `next dev --webpack` instead of this config)
   webpack: (config: WebpackConfig): WebpackConfig => {
+    // Prevent errors when packages try to import Node.js built-ins on client-side
+    // (common with three.js, @react-three/fiber, postprocessing, etc.)
     config.resolve = {
       ...config.resolve,
       fallback: {
         ...config.resolve?.fallback,
         fs: false,
         path: false,
+        // Add more fallbacks here only if you get new "Module not found" errors in browser
+        // e.g. stream: false, crypto: false
       },
     };
 
     return config;
   },
 
-  // Other useful options
   reactStrictMode: true,
 
   images: {
-    domains: ["picsum.photos"],
+    // Modern & secure way (domains is deprecated since Next.js 14+)
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "picsum.photos",
+        protocol: 'https',
+        hostname: 'picsum.photos',
       },
+      // Add more hostnames here as needed, e.g.:
+      // {
+      //   protocol: 'https',
+      //   hostname: 'images.unsplash.com',
+      // },
     ],
   },
+
+  // Optional: good security defaults
+  // poweredByHeader: false,
+  // compress: true,
 };
 
 export default nextConfig;

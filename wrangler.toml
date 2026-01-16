@@ -1,11 +1,12 @@
-name = "xovato"                          # Your project name
-compatibility_date = "2025-12-01"        # Or newer, e.g. "2026-01-01" – important for Node.js APIs
-compatibility_flags = ["nodejs_compat", "nodejs_compat_v2"]  # Top-level, not under [site]
+name = "xovato"
+compatibility_date = "2026-01-01"
+compatibility_flags = ["nodejs_compat", "nodejs_compat_v2"]
 
-main = ".open-next/worker.js"            # Adapter's entry point (check your .open-next after local build)
+# This line is REQUIRED for Pages + Wrangler to work together
+pages_build_output_dir = ".open-next"
+
+main = ".open-next/worker.js"
 
 [assets]
 directory = ".open-next/assets"
 binding = "ASSETS"
-
-# Optional: If you add caching later (KV/R2), put here too

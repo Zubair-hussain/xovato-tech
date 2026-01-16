@@ -1,0 +1,8 @@
+name = "xovato"               # must match your Pages project name
+compatibility_date = "2025-12-01"  # or newer, e.g. "2026-01-01"
+
+[site]
+bucket = "./.open-next"       # points to the folder the adapter builds
+
+# Optional but recommended for Node.js compatibility
+compatibility_flags = ["nodejs_compat", "nodejs_compat_v2"]

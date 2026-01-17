@@ -1,2 +1,2 @@
-// _worker.js - placeholder to trigger Pages Functions
-export default {};
+// _worker.js - required to enable Cloudflare Pages Functions/Worker
+// The real logic comes from OpenNext's worker.js

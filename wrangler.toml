@@ -1,11 +1,8 @@
-name = "xovato"                          # Your exact project name
+name = "xovato"                          # Exact project name
 
-compatibility_date = "2026-01-01"        # Recent date for Node.js APIs
+compatibility_date = "2026-01-01"        # Recent for Node.js compat
 
 compatibility_flags = ["nodejs_compat", "nodejs_compat_v2"]
 
-# Required for Pages to accept/use this wrangler.toml file
+# This is the ONLY output dir key Pages allows/requires
 pages_build_output_dir = ".open-next"
-
-# Adapter's worker entry point (from your successful build logs)
-main = ".open-next/worker.js"
